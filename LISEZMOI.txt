@@ -1,0 +1,22 @@
+CARNET MUSCU – installation sur Android
+========================================
+
+L'appli doit être servie en HTTPS pour être installable et marcher hors ligne.
+Le plus simple et gratuit : GitHub Pages.
+
+1. Crée un compte sur github.com (si besoin), puis un nouveau dépôt public,
+   par ex. « carnet-muscu ».
+2. Dans le dépôt : « Add file » > « Upload files », glisse TOUS les fichiers
+   de ce dossier (index.html, sw.js, manifest.webmanifest, les 3 icônes), puis « Commit ».
+3. Settings > Pages > Source : « Deploy from a branch », branche « main », dossier « / (root) » > Save.
+4. Après 1 à 2 minutes, l'appli est en ligne à :
+   https://TON-PSEUDO.github.io/carnet-muscu/
+5. Sur le téléphone, ouvre cette adresse dans Chrome > menu ⋮ > « Ajouter à l'écran d'accueil »
+   (ou « Installer l'application »).
+
+Tes données (machines, photos, séries) restent UNIQUEMENT sur le téléphone, jamais sur GitHub.
+→ Pense à faire « Réglages > Exporter une sauvegarde » de temps en temps.
+→ Désinstaller l'appli ou effacer les données de Chrome efface aussi le carnet.
+
+Mise à jour du code : remplace les fichiers sur GitHub ET change le numéro dans sw.js
+(carnet-muscu-v1 → v2) pour que le téléphone récupère la nouvelle version.

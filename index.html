@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1216">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Carnet muscu</title>
+<style>
+:root{
+  --bg:#0f1216; --s1:#181c22; --s2:#232932; --s3:#2e3540; --line:#2a3039;
+  --tx:#eef0f2; --mu:#98a2ad; --ac:#ff8a3d; --ac2:#ffb07a; --acbg:rgba(255,138,61,.14);
+  --bad:#f26464; --r:14px; --sb:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{min-height:100vh;padding-bottom:calc(76px + var(--sb))}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,select,textarea{font:inherit;color:var(--tx);background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:12px;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--ac);outline-offset:-1px;border-color:transparent}
+textarea{min-height:80px;resize:vertical}
+label.f{display:block;margin:14px 0 6px;color:var(--mu);font-size:14px}
+header#top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;padding:8px 10px;background:rgba(15,18,22,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);min-height:58px}
+header#top h1{flex:1;margin:0 4px;font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ib:active{background:var(--s2)}
+.ib svg{width:22px;height:22px}
+main{padding:12px;max-width:640px;margin:0 auto}
+nav#tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:var(--s1);border-top:1px solid var(--line);padding-bottom:var(--sb)}
+nav#tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 10px;color:var(--mu);text-decoration:none;font-size:12px}
+nav#tabs a svg{width:24px;height:24px}
+nav#tabs a.on{color:var(--ac)}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.mu{color:var(--mu)} .sm{font-size:13px}
+.ttl{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thumb{width:50px;height:50px;border-radius:10px;object-fit:cover;background:var(--s3);flex:none;display:grid;place-items:center;color:var(--mu)}
+.thumb svg{width:24px;height:24px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 16px;border-radius:12px;background:var(--s2);font-weight:600;min-height:48px;text-align:center}
+.btn:active{filter:brightness(1.25)}
+.btn svg{width:20px;height:20px}
+.btn.pri{background:var(--ac);color:#1a0d03}
+.btn.ghost{background:transparent;border:1px dashed var(--s3);color:var(--mu)}
+.btn.bad{background:transparent;color:var(--bad);border:1px solid rgba(242,100,100,.45)}
+.btn.blk{display:flex;width:100%}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{display:inline-flex;align-items:baseline;gap:5px;padding:9px 13px;border-radius:999px;background:var(--s2);font-variant-numeric:tabular-nums}
+.chip b{font-weight:700}
+.chip .n{color:var(--mu);font-size:12px;margin-right:2px}
+.chip.add{background:var(--acbg);color:var(--ac2);font-weight:600}
+.prev{margin-top:10px;font-size:13px;color:var(--mu)}
+.datebar{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.datebar .d{flex:1;position:relative;text-align:center;padding:11px 8px;background:var(--s1);border:1px solid var(--line);border-radius:12px;font-weight:600}
+.datebar .d span.cap{text-transform:capitalize}
+.datebar .d input{position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0}
+.empty{text-align:center;color:var(--mu);padding:28px 12px}
+.list .it{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);width:100%;text-align:left;color:inherit;text-decoration:none}
+.list .it:last-child{border-bottom:0}
+.grp{margin:18px 4px 6px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mu)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mc{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;color:inherit;text-decoration:none;display:block}
+.mc .ph{aspect-ratio:1/1;background:var(--s3);display:grid;place-items:center;color:var(--mu)}
+.mc .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.mc .ph svg{width:40px;height:40px}
+.mc .tx{padding:10px}
+.hero{width:100%;max-height:380px;object-fit:cover;border-radius:var(--r);display:block;margin-bottom:12px;background:var(--s3)}
+.photo-pick{display:grid;place-items:center;width:100%;aspect-ratio:4/3;border-radius:var(--r);background:var(--s2);border:1px dashed var(--s3);overflow:hidden;color:var(--mu);margin-top:10px;cursor:pointer}
+.photo-pick img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-pick svg{width:36px;height:36px}
+.seg{display:flex;background:var(--s2);border-radius:10px;padding:3px;gap:3px;margin-top:10px}
+.seg button{flex:1;padding:8px;border-radius:8px;font-size:14px;color:var(--mu)}
+.seg button.on{background:var(--s3);color:var(--tx)}
+.chart{width:100%;height:auto;display:block;margin-top:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats div b{display:block;font-size:18px;font-variant-numeric:tabular-nums}
+#bd{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center}
+#bd.open{display:flex}
+#sheet{width:100%;max-width:640px;max-height:92vh;overflow:auto;background:var(--s1);border-radius:20px 20px 0 0;padding:8px 16px calc(16px + var(--sb));animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+#sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--s3);margin:4px auto 12px}
+#sheet h2{margin:0 0 4px;font-size:19px}
+.acts{display:flex;gap:10px;margin-top:18px}
+.acts .btn{flex:1}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{min-width:50px;height:54px;border-radius:12px;background:var(--s2);font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+.stepper button:active{background:var(--s3)}
+.stepper input{text-align:center;font-size:24px;font-weight:700;height:54px;padding:6px;min-width:0;font-variant-numeric:tabular-nums}
+.hint{font-size:13px;color:var(--mu)}
+.toast{position:fixed;left:50%;bottom:calc(88px + var(--sb));transform:translateX(-50%);background:var(--s3);padding:10px 16px;border-radius:999px;z-index:30;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);white-space:nowrap}
+.badge{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--acbg);color:var(--ac2);vertical-align:middle}
+a.lnk{color:var(--ac2);text-decoration:none}
+</style>
+</head>
+<body>
+<header id="top"></header>
+<main id="view"></main>
+<nav id="tabs"></nav>
+<div id="bd"><div id="sheet"></div></div>
+
+<script>
+'use strict';
+/* ================= Icônes & utilitaires ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const sv = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const I = {
+  cal: sv('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>'),
+  list: sv('<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'),
+  dumbbell: sv('<path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/>'),
+  back: sv('<path d="M15 18l-6-6 6-6"/>'),
+  next: sv('<path d="M9 18l6-6-6-6"/>'),
+  gear: sv('<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>'),
+  plus: sv('<path d="M12 5v14M5 12h14"/>'),
+  dots: sv('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>'),
+  camera: sv('<path d="M3 8h4l2-3h6l2 3h4v12H3z"/><circle cx="12" cy="13" r="4"/>'),
+  edit: sv('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => ymd(new Date());
+const pYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = pYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
+const cap1 = t => t.charAt(0).toUpperCase() + t.slice(1);
+const fDate = (s, o) => cap1(pYmd(s).toLocaleDateString('fr-FR', o || { weekday: 'long', day: 'numeric', month: 'long' }));
+const fShort = s => { const d = pYmd(s), o = { day: 'numeric', month: 'short' }; if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric'; return d.toLocaleDateString('fr-FR', o); };
+const r2 = n => Math.round(n * 100) / 100;
+const fNum = n => (n < 0 ? '−' : '') + String(r2(Math.abs(n))).replace('.', ',');
+const fKg = n => fNum(n) + ' kg';
+const fIn = n => String(r2(n)).replace('.', ',');
+const pNum = s => { const v = parseFloat(String(s).replace(/\s/g, '').replace(',', '.').replace('−', '-')); return isNaN(v) ? null : v; };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2300); }
+
+/* ================= Base de données locale (IndexedDB) ================= */
+const STORES = ['machines', 'exercises', 'logs'];
+let db;
+const S = { machines: [], exercises: [], logs: [] };
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('carnet-muscu', 1);
+    r.onupgradeneeded = () => { const d = r.result; STORES.forEach(n => { if (!d.objectStoreNames.contains(n)) d.createObjectStore(n, { keyPath: 'id' }); }); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+const reqP = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const store = (n, mode = 'readonly') => db.transaction(n, mode).objectStore(n);
+const getAll = n => reqP(store(n).getAll());
+let persistAsked = false;
+async function save(n, obj) {
+  obj.updatedAt = Date.now();
+  await reqP(store(n, 'readwrite').put(obj));
+  const i = S[n].findIndex(x => x.id === obj.id);
+  if (i < 0) S[n].push(obj); else S[n][i] = obj;
+  if (!persistAsked) { persistAsked = true; navigator.storage?.persist?.().catch(() => {}); }
+}
+async function remove(n, id) { await reqP(store(n, 'readwrite').delete(id)); S[n] = S[n].filter(x => x.id !== id); }
+
+const M = id => S.machines.find(x => x.id === id);
+const E = id => S.exercises.find(x => x.id === id);
+const L = id => S.logs.find(x => x.id === id);
+const byDateDesc = (a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+const logsOf = exId => S.logs.filter(l => l.exerciseId === exId && l.sets.length).sort(byDateDesc);
+const logsOn = date => S.logs.filter(l => l.date === date).sort((a, b) => a.createdAt - b.createdAt);
+const prevLog = (exId, date) => logsOf(exId).find(l => l.date < date);
+const setsTxt = sets => sets.map(s => `${s.reps}×${fNum(s.kg)}`).join(' · ') + ' kg';
+const maxKg = sets => Math.max(...sets.map(s => s.kg));
+const totReps = sets => sets.reduce((a, s) => a + s.reps, 0);
+
+/* ================= Photos ================= */
+const purl = new Map();
+function photoUrl(m) {
+  if (!m || !m.photo) return null;
+  const c = purl.get(m.id);
+  if (c && c.blob === m.photo) return c.url;
+  if (c) URL.revokeObjectURL(c.url);
+  const url = URL.createObjectURL(m.photo); purl.set(m.id, { blob: m.photo, url }); return url;
+}
+const thumb = m => { const u = photoUrl(m); return u ? `<img class="thumb" src="${u}" alt="">` : `<div class="thumb">${I.dumbbell}</div>`; };
+function loadImg(file) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); }); }
+async function compress(file, max = 1280, q = 0.82) {
+  const img = await loadImg(file);
+  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  URL.revokeObjectURL(img.src);
+  return new Promise(res => c.toBlob(res, 'image/jpeg', q));
+}
+
+/* ================= Navigation (gère le bouton retour Android) ================= */
+const stack = []; let replacing = false, afterRender = null, cur = {};
+const go = h => { location.hash = h; };
+const rep = h => { replacing = true; location.replace(h); };
+function goBack(fallback) { if (stack.length > 1) history.back(); else rep('#' + fallback); }
+function onHash() {
+  const h = location.hash || '#/seance';
+  if (replacing) { stack[stack.length - 1] = h; replacing = false; }
+  else if (stack.length > 1 && stack[stack.length - 2] === h) stack.pop();
+  else stack.push(h);
+  window.scrollTo(0, 0); render();
+}
+function header(title, { back = null, right = '' } = {}) {
+  cur.back = back;
+  $('#top').innerHTML = (back ? `<button class="ib" data-act="back" aria-label="Retour">${I.back}</button>` : '') + `<h1>${esc(title)}</h1>` + right;
+}
+const gearBtn = `<button class="ib" data-act="settings" aria-label="Réglages">${I.gear}</button>`;
+
+$('#tabs').innerHTML = [['seance', I.cal, 'Séance'], ['exos', I.list, 'Exercices'], ['machines', I.dumbbell, 'Machines']]
+  .map(([t, ic, lb]) => `<a href="#/${t}" data-t="${t}">${ic}<span>${lb}</span></a>`).join('');
+
+function render() {
+  const [v, a] = (location.hash.replace(/^#\/?/, '') || 'seance').split('/');
+  const tab = { exo: 'exos', machine: 'machines' }[v] || v;
+  document.querySelectorAll('#tabs a').forEach(x => x.classList.toggle('on', x.dataset.t === tab));
+  switch (v) {
+    case 'seance': vSeance(/^\d{4}-\d{2}-\d{2}$/.test(a || '') ? a : today()); break;
+    case 'exos': vExos(); break;
+    case 'exo': vExo(a); break;
+    case 'machines': vMachines(); break;
+    case 'machine': vMachine(a); break;
+    default: rep('#/seance'); return;
+  }
+  if (afterRender) { const f = afterRender; afterRender = null; f(); }
+}
+
+/* ================= Vue : Séance du jour ================= */
+function vSeance(date) {
+  cur = { v: 'seance', date };
+  header('Séance', { right: gearBtn });
+  const isToday = date === today();
+  let h = `<div class="datebar">
+    <button class="ib" data-act="day" data-n="-1" aria-label="Jour précédent">${I.back}</button>
+    <div class="d"><span>${esc(fDate(date))}</span>${isToday ? ' <span class="badge">aujourd’hui</span>' : ''}<input type="date" id="dpick" value="${date}"></div>
+    <button class="ib" data-act="day" data-n="1" aria-label="Jour suivant">${I.next}</button></div>`;
+  if (!isToday) h += `<div style="text-align:center;margin:-4px 0 12px"><a class="lnk sm" href="#/seance/${today()}">Revenir à aujourd’hui</a></div>`;
+  const logs = logsOn(date);
+  if (!logs.length) h += `<div class="empty">Aucun exercice enregistré ce jour-là.</div>`;
+  for (const l of logs) {
+    const ex = E(l.exerciseId); if (!ex) continue;
+    const m = M(ex.machineId), pv = prevLog(ex.id, date);
+    h += `<div class="card">
+      <div class="row">
+        <a href="#/exo/${ex.id}" class="row grow" style="color:inherit;text-decoration:none">${thumb(m)}
+          <div class="grow"><div class="ttl">${esc(ex.name)}</div><div class="mu sm ttl">${esc(m ? m.name : 'Sans machine')}</div></div></a>
+        <button class="ib" data-act="logmenu" data-id="${l.id}" aria-label="Options">${I.dots}</button>
+      </div>
+      <div class="chips">${l.sets.map((s, i) => `<button class="chip" data-act="editset" data-id="${l.id}" data-i="${i}"><span class="n">${i + 1}</span><b>${s.reps}</b>×<b>${fKg(s.kg)}</b></button>`).join('')}
+        <button class="chip add" data-act="addset" data-id="${l.id}">+ Série</button></div>
+      ${l.note ? `<div class="prev" style="white-space:pre-wrap">Note : ${esc(l.note)}</div>` : ''}
+      ${pv ? `<div class="prev">Précédent (${esc(fShort(pv.date))}) : ${esc(setsTxt(pv.sets))}</div>` : ''}
+    </div>`;
+  }
+  h += `<button class="btn pri blk" data-act="pickex">${I.plus} Ajouter un exercice</button>`;
+  $('#view').innerHTML = h;
+  $('#dpick').onchange = e => { if (e.target.value) rep('#/seance/' + e.target.value); };
+}
+
+/* ================= Vue : Liste des exercices ================= */
+let exQ = '';
+function vExos() {
+  cur = { v: 'exos' };
+  header('Exercices', { right: gearBtn });
+  $('#view').innerHTML = `<input id="ex-q" type="search" placeholder="Rechercher un exercice ou une machine…" style="margin-bottom:12px" value="${esc(exQ)}" autocomplete="off">
+    <div id="ex-list"></div><button class="btn pri blk" data-act="newex" style="margin-top:4px">${I.plus} Nouvel exercice</button>`;
+  const draw = () => {
+    const q = exQ.trim().toLowerCase();
+    const rows = S.exercises.filter(e => !q || e.name.toLowerCase().includes(q) || (M(e.machineId)?.name || '').toLowerCase().includes(q))
+      .map(e => ({ e, last: logsOf(e.id)[0] }))
+      .sort((a, b) => (b.last?.date || '').localeCompare(a.last?.date || '') || a.e.name.localeCompare(b.e.name, 'fr'));
+    $('#ex-list').innerHTML = !S.exercises.length ? `<div class="empty">Aucun exercice pour l’instant.<br>Commence par créer une machine (avec sa photo), puis ses exercices.</div>`
+      : !rows.length ? `<div class="empty">Aucun résultat.</div>`
+      : `<div class="card list" style="padding:4px 12px">${rows.map(({ e, last }) => exRow(e, last)).join('')}</div>`;
+  };
+  draw();
+  $('#ex-q').oninput = e => { exQ = e.target.value; draw(); };
+}
+function exRow(e, last = logsOf(e.id)[0]) {
+  const m = M(e.machineId);
+  return `<a class="it" href="#/exo/${e.id}">${thumb(m)}<div class="grow"><div class="ttl">${esc(e.name)}</div>
+    <div class="mu sm ttl">${esc(m ? m.name : 'Sans machine')}${last ? ' · ' + esc(fShort(last.date)) + ' · max ' + esc(fKg(maxKg(last.sets))) : ''}</div></div></a>`;
+}
+
+/* ================= Vue : Détail d'un exercice ================= */
+let chartMetric = 'kg';
+function vExo(id) {
+  const ex = E(id); if (!ex) { rep('#/exos'); return; }
+  cur = { v: 'exo', id };
+  const m = M(ex.machineId), logs = logsOf(id);
+  header(ex.name, { back: '/exos', right: `<button class="ib" data-act="editex" data-id="${id}" aria-label="Modifier">${I.edit}</button>` });
+  let h = `<div class="card row">${thumb(m)}<div class="grow">${m ? `<a class="lnk" href="#/machine/${m.id}">${esc(m.name)}</a>` : '<span class="mu">Sans machine</span>'}
+    ${ex.notes ? `<div class="sm mu" style="white-space:pre-wrap;margin-top:4px">${esc(ex.notes)}</div>` : ''}</div></div>`;
+  h += `<button class="btn pri blk" data-act="dotoday" data-id="${id}" style="margin-bottom:12px">${I.plus} Ajouter une série aujourd’hui</button>`;
+  if (logs.length) {
+    const best = Math.max(...logs.map(l => maxKg(l.sets)));
+    h += `<div class="card"><div class="stats">
+        <div><b>${logs.length}</b><span class="mu sm">séance${logs.length > 1 ? 's' : ''}</span></div>
+        <div><b>${esc(fKg(best))}</b><span class="mu sm">charge max</span></div>
+        <div><b>${esc(fShort(logs[0].date))}</b><span class="mu sm">dernière fois</span></div></div>
+      <div class="seg"><button data-act="metric" data-m="kg" class="${chartMetric === 'kg' ? 'on' : ''}">Charge max</button><button data-act="metric" data-m="reps" class="${chartMetric === 'reps' ? 'on' : ''}">Répétitions totales</button></div>
+      ${chartSvg(logs, chartMetric)}</div>
+      <div class="grp">Historique</div>`;
+    h += logs.map(l => `<div class="card"><div class="row"><a class="lnk grow" href="#/seance/${l.date}" >${esc(fDate(l.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }))}</a>
+        <span class="mu sm">${plural(l.sets.length, 'série')}</span></div>
+        <div class="chips">${l.sets.map(s => `<span class="chip"><b>${s.reps}</b>×<b>${fKg(s.kg)}</b></span>`).join('')}</div>
+        ${l.note ? `<div class="prev" style="white-space:pre-wrap">Note : ${esc(l.note)}</div>` : ''}</div>`).join('');
+  } else h += `<div class="empty">Pas encore de série enregistrée pour cet exercice.</div>`;
+  $('#view').innerHTML = h;
+}
+function chartSvg(logs, metric) {
+  const pts = logs.slice(0, 40).reverse().map(l => ({ d: l.date, v: metric === 'kg' ? maxKg(l.sets) : totReps(l.sets) }));
+  if (pts.length < 2) return `<div class="mu sm" style="margin-top:12px">La courbe apparaîtra à partir de 2 séances.</div>`;
+  const W = 340, H = 170, pl = 44, pr = 12, pt = 14, pb = 26;
+  const vmin = Math.min(...pts.map(p => p.v)), vmax = Math.max(...pts.map(p => p.v));
+  let mn = vmin, mx = vmax; if (mn === mx) { mn -= 1; mx += 1; }
+  const pv = (mx - mn) * 0.15; mn -= pv; mx += pv;
+  const x = i => pl + (W - pl - pr) * i / (pts.length - 1), y = v => pt + (H - pt - pb) * (1 - (v - mn) / (mx - mn));
+  const lab = v => metric === 'kg' ? fNum(v) : String(v);
+  const hl = v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="#2e3540"/><text x="${pl - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" fill="#98a2ad" font-size="11">${lab(v)}</text>`;
+  const poly = pts.map((p, i) => `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Évolution">
+    ${hl(vmax)}${vmin !== vmax ? hl(vmin) : ''}
+    ${metric === 'kg' && mn < 0 && mx > 0 ? `<line x1="${pl}" x2="${W - pr}" y1="${y(0)}" y2="${y(0)}" stroke="#4a5360" stroke-dasharray="3 4"/>` : ''}
+    <polyline points="${poly}" fill="none" stroke="#ff8a3d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pts.map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.5" fill="#ff8a3d"/>`).join('')}
+    <text x="${pl}" y="${H - 6}" fill="#98a2ad" font-size="11">${esc(fShort(pts[0].d))}</text>
+    <text x="${W - pr}" y="${H - 6}" fill="#98a2ad" font-size="11" text-anchor="end">${esc(fShort(pts[pts.length - 1].d))}</text>
+  </svg>`;
+}
+
+/* ================= Vues : Machines ================= */
+function vMachines() {
+  cur = { v: 'machines' };
+  header('Machines', { right: gearBtn });
+  const ms = [...S.machines].sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  let h = ms.length ? `<div class="grid">${ms.map(m => {
+    const n = S.exercises.filter(e => e.machineId === m.id).length, u = photoUrl(m);
+    return `<a class="mc" href="#/machine/${m.id}"><div class="ph">${u ? `<img src="${u}" alt="">` : I.dumbbell}</div>
+      <div class="tx"><div class="ttl">${esc(m.name)}</div><div class="mu sm">${plural(n, 'exercice')}</div></div></a>`;
+  }).join('')}</div>` : `<div class="empty">Ajoute ta première machine, avec une photo pour la reconnaître facilement à la salle.</div>`;
+  h += `<button class="btn pri blk" data-act="newmachine" style="margin-top:12px">${I.plus} Nouvelle machine</button>`;
+  $('#view').innerHTML = h;
+}
+function vMachine(id) {
+  const m = M(id); if (!m) { rep('#/machines'); return; }
+  cur = { v: 'machine', id };
+  header(m.name, { back: '/machines', right: `<button class="ib" data-act="editmachine" data-id="${id}" aria-label="Modifier">${I.edit}</button>` });
+  const u = photoUrl(m), exs = S.exercises.filter(e => e.machineId === id).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  let h = u ? `<img class="hero" src="${u}" alt="">` : `<button class="photo-pick" data-act="editmachine" data-id="${id}" style="margin:0 0 12px">${I.camera}</button>`;
+  if (m.notes) h += `<div class="card"><div class="mu sm">Réglages / notes</div><div style="white-space:pre-wrap;margin-top:4px">${esc(m.notes)}</div></div>`;
+  h += `<div class="grp">Exercices sur cette machine</div>`;
+  h += exs.length ? `<div class="card list" style="padding:4px 12px">${exs.map(e => exRow(e)).join('')}</div>` : `<div class="empty">Aucun exercice associé.</div>`;
+  h += `<button class="btn pri blk" data-act="newex" data-m="${id}">${I.plus} Ajouter un exercice sur cette machine</button>`;
+  $('#view').innerHTML = h;
+}
+
+/* ================= Panneaux (bottom sheets) ================= */
+let sheetOpen = false, ctx = {}, closeResolve = null;
+function openSheet(html, c = {}) {
+  $('#sheet').innerHTML = '<div class="grab"></div>' + html; ctx = c; $('#sheet').scrollTop = 0;
+  if (!sheetOpen) { sheetOpen = true; $('#bd').classList.add('open'); history.pushState({ sheet: 1 }, ''); }
+}
+function hideSheet() { sheetOpen = false; $('#bd').classList.remove('open'); $('#sheet').innerHTML = ''; ctx = {}; }
+function closeSheet() {
+  return new Promise(res => {
+    if (!sheetOpen) return res();
+    if (history.state && history.state.sheet) { closeResolve = res; history.back(); }
+    else { hideSheet(); res(); }
+  });
+}
+window.addEventListener('popstate', () => { if (sheetOpen) { hideSheet(); const r = closeResolve; closeResolve = null; r && r(); } });
+$('#bd').addEventListener('click', e => { if (e.target.id === 'bd') closeSheet(); });
+
+function sheetPickEx(date) {
+  openSheet(`<h2>Ajouter un exercice</h2><input id="pk-q" type="search" placeholder="Rechercher…" autocomplete="off" style="margin-top:8px"><div id="pk-list"></div>
+    <div class="acts"><button class="btn ghost" data-act="newexfrompick">${I.plus} Créer un nouvel exercice</button></div>`, { date });
+  const draw = (q = '') => {
+    q = q.trim().toLowerCase();
+    const exs = S.exercises.filter(e => !q || e.name.toLowerCase().includes(q) || (M(e.machineId)?.name || '').toLowerCase().includes(q));
+    const done = new Set(logsOn(date).map(l => l.exerciseId));
+    const groups = new Map();
+    for (const e of exs) { const k = M(e.machineId) ? e.machineId : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); }
+    const keys = [...groups.keys()].sort((a, b) => (a === '') - (b === '') || (M(a)?.name || '').localeCompare(M(b)?.name || '', 'fr'));
+    let h = !S.exercises.length ? `<div class="empty">Pas encore d’exercice : crée le premier ci-dessous.</div>` : !exs.length ? `<div class="empty">Aucun résultat.</div>` : '';
+    for (const k of keys) {
+      const m = M(k);
+      h += `<div class="grp">${esc(m ? m.name : 'Sans machine')}</div><div class="list">` + groups.get(k).sort((a, b) => a.name.localeCompare(b.name, 'fr')).map(e => {
+        const last = logsOf(e.id)[0];
+        return `<button class="it" data-act="pickone" data-id="${e.id}">${thumb(m)}<div class="grow"><div class="ttl">${esc(e.name)}${done.has(e.id) ? ' <span class="badge">déjà fait</span>' : ''}</div>
+          <div class="mu sm ttl">${last ? esc(fShort(last.date) + ' : ' + setsTxt(last.sets)) : 'Jamais fait'}</div></div></button>`;
+      }).join('') + `</div>`;
+    }
+    $('#pk-list').innerHTML = h;
+  };
+  draw(); $('#pk-q').oninput = e => draw(e.target.value);
+}
+
+function sheetSet({ date, exId, logId = null, idx = null }) {
+  const ex = E(exId), log = logId ? L(logId) : null;
+  let init;
+  if (log && idx != null) init = log.sets[idx];
+  else if (log && log.sets.length) init = log.sets[log.sets.length - 1];
+  else { const p = prevLog(exId, date) || logsOf(exId)[0]; init = p ? p.sets[0] : { reps: 10, kg: 0 }; }
+  const n = idx != null ? idx + 1 : (log ? log.sets.length : 0) + 1;
+  const pv = prevLog(exId, date);
+  openSheet(`<h2>${esc(ex.name)}</h2><div class="mu sm">Série ${n}${pv ? ` · précédent : ${esc(setsTxt(pv.sets))}` : ''}</div>
+    <label class="f">Répétitions</label>
+    <div class="stepper"><button data-st="r" data-d="-1">−1</button><input id="s-r" inputmode="numeric" value="${init.reps}"><button data-st="r" data-d="1">+1</button></div>
+    <label class="f">Charge (kg)</label>
+    <div class="stepper"><button data-st="k" data-d="-5">−5</button><button data-st="k" data-d="-1">−1</button><input id="s-k" inputmode="decimal" value="${fIn(init.kg)}"><button data-st="k" data-d="1">+1</button><button data-st="k" data-d="5">+5</button></div>
+    <div class="row" style="margin-top:10px"><button class="btn" data-act="sign" style="min-height:40px;padding:8px 14px">± Signe</button>
+      <div class="hint grow">Négatif = assistance (ex. tractions assistées à −20 kg)</div></div>
+    <div class="acts">${idx != null ? `<button class="btn bad" data-act="delset">Supprimer</button>` : ''}<button class="btn" data-act="close">Annuler</button><button class="btn pri" data-act="saveset">Valider</button></div>`,
+    { date, exId, logId: log ? log.id : null, idx });
+}
+
+function sheetLogMenu(id) {
+  const l = L(id), ex = E(l.exerciseId);
+  openSheet(`<h2>${esc(ex.name)}</h2><div class="mu sm">${esc(fDate(l.date))}</div>
+    <div style="display:grid;gap:8px;margin-top:14px">
+      <button class="btn blk" data-act="lognote" data-id="${id}">${l.note ? 'Modifier la note' : 'Ajouter une note'}</button>
+      <button class="btn blk" data-act="loghist" data-id="${ex.id}">Voir l’historique de l’exercice</button>
+      <button class="btn bad blk" data-act="logrm" data-id="${id}">Retirer de cette séance</button>
+      <button class="btn blk" data-act="close">Annuler</button></div>`, { id });
+}
+function sheetNote(id) {
+  const l = L(id);
+  openSheet(`<h2>Note</h2><textarea id="n-t" placeholder="Sensations, réglage du jour…" style="margin-top:8px">${esc(l.note || '')}</textarea>
+    <div class="acts"><button class="btn" data-act="close">Annuler</button><button class="btn pri" data-act="savenote">Enregistrer</button></div>`, { id });
+}
+
+function sheetExercise(id, opts = {}) {
+  const ex = id ? E(id) : null, d = opts.draft || {};
+  const name = d.name ?? ex?.name ?? '', notes = d.notes ?? ex?.notes ?? '';
+  const mid = d.machineId ?? ex?.machineId ?? opts.machineId ?? '';
+  const ms = [...S.machines].sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  openSheet(`<h2>${ex ? 'Modifier l’exercice' : 'Nouvel exercice'}</h2>
+    <label class="f">Nom de l’exercice</label><input id="e-name" value="${esc(name)}" placeholder="ex. Tractions, Tirage horizontal…" autocomplete="off">
+    <label class="f">Machine</label><select id="e-m"><option value="">Sans machine (poids du corps, haltères…)</option>
+      ${ms.map(m => `<option value="${m.id}" ${m.id === mid ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ Nouvelle machine…</option></select>
+    <label class="f">Notes</label><textarea id="e-notes" placeholder="ex. prise serrée, amplitude complète">${esc(notes)}</textarea>
+    <div class="acts">${ex ? '<button class="btn bad" data-act="delex">Supprimer</button>' : ''}<button class="btn" data-act="close">Annuler</button><button class="btn pri" data-act="saveex">Enregistrer</button></div>`,
+    { id, opts });
+  $('#e-m').onchange = e => {
+    if (e.target.value !== '__new') return;
+    const draft = { name: $('#e-name').value, notes: $('#e-notes').value };
+    sheetMachine(null, { onSaved: m => sheetExercise(id, { ...opts, draft: { ...draft, machineId: m.id } }) });
+  };
+  if (!ex) setTimeout(() => $('#e-name')?.focus(), 50);
+}
+
+function sheetMachine(id, opts = {}) {
+  const m = id ? M(id) : null;
+  const ph = m?.photo || null;
+  openSheet(`<h2>${m ? 'Modifier la machine' : 'Nouvelle machine'}</h2>
+    <label class="photo-pick" id="mp"><span id="mp-in">${ph ? `<img src="${photoUrl(m)}" alt="">` : `<span style="text-align:center;display:grid;justify-items:center;gap:6px">${I.camera}<span class="sm">Prendre ou choisir une photo</span></span>`}</span>
+      <input type="file" accept="image/*" id="m-file" hidden></label>
+    <label class="f">Nom</label><input id="m-name" value="${esc(m?.name || '')}" placeholder="ex. Poulie haute, Chest press…" autocomplete="off">
+    <label class="f">Réglages / notes</label><textarea id="m-notes" placeholder="ex. siège cran 4, dossier position 2">${esc(m?.notes || '')}</textarea>
+    <div class="acts">${m ? '<button class="btn bad" data-act="delmachine">Supprimer</button>' : ''}<button class="btn" data-act="close">Annuler</button><button class="btn pri" data-act="savemachine">Enregistrer</button></div>`,
+    { id, photo: ph, onSaved: opts.onSaved });
+  $('#m-file').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { const b = await compress(f); ctx.photo = b; $('#mp-in').innerHTML = `<img src="${URL.createObjectURL(b)}" alt="">`; }
+    catch { toast('Impossible de lire cette photo'); }
+  };
+}
+
+async function sheetSettings() {
+  let est = '', pers = false;
+  try { const e = await navigator.storage.estimate(); est = ` · ${(e.usage / 1048576).toFixed(1)} Mo`; } catch {}
+  try { pers = await navigator.storage.persisted(); } catch {}
+  openSheet(`<h2>Réglages</h2>
+    <div class="mu sm">${plural(S.machines.length, 'machine')} · ${plural(S.exercises.length, 'exercice')} · ${plural(new Set(S.logs.map(l => l.date)).size, 'jour')} d’entraînement${est}</div>
+    <div class="card" style="margin-top:14px"><div class="ttl">Sauvegarde</div>
+      <div class="sm mu" style="margin:4px 0 12px">Les données restent uniquement sur ce téléphone. Exporte de temps en temps un fichier de sauvegarde (photos incluses) et garde-le ailleurs (Drive, mail…).</div>
+      <button class="btn blk" data-act="export">Exporter une sauvegarde</button>
+      <label class="btn blk" style="margin-top:8px">Restaurer une sauvegarde<input type="file" id="imp" accept="application/json,.json" hidden></label></div>
+    <div class="sm mu">Stockage protégé contre l’effacement auto : ${pers ? 'oui ✓' : 'non (installe l’appli sur l’écran d’accueil)'}</div>
+    <div class="acts"><button class="btn" data-act="close">Fermer</button></div>`);
+  $('#imp').onchange = e => importFile(e.target.files[0]);
+}
+
+/* ================= Sauvegarde / restauration ================= */
+const blobToDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); });
+const dataURLToBlob = async u => (await fetch(u)).blob();
+async function exportData() {
+  const machines = await Promise.all(S.machines.map(async m => ({ ...m, photo: m.photo ? await blobToDataURL(m.photo) : null })));
+  const data = { app: 'carnet-muscu', format: 1, exportedAt: new Date().toISOString(), machines, exercises: S.exercises, logs: S.logs };
+  const name = `carnet-muscu-${today()}.json`;
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  toast('Sauvegarde enregistrée dans Téléchargements');
+}
+async function importFile(f) {
+  if (!f) return;
+  let d; try { d = JSON.parse(await f.text()); } catch { return toast('Fichier illisible'); }
+  if (d.app !== 'carnet-muscu' || !Array.isArray(d.machines) || !Array.isArray(d.exercises) || !Array.isArray(d.logs)) return toast('Ce n’est pas une sauvegarde du carnet');
+  const when = d.exportedAt ? new Date(d.exportedAt).toLocaleDateString('fr-FR') : '?';
+  if (!confirm(`Remplacer TOUTES les données actuelles par la sauvegarde du ${when} ?\n(${d.machines.length} machines, ${d.exercises.length} exercices, ${d.logs.length} entrées)`)) return;
+  const machines = await Promise.all(d.machines.map(async m => ({ ...m, photo: m.photo ? await dataURLToBlob(m.photo) : null })));
+  await new Promise((res, rej) => {
+    const t = db.transaction(STORES, 'readwrite');
+    const data = { machines, exercises: d.exercises, logs: d.logs };
+    for (const n of STORES) { const s = t.objectStore(n); s.clear(); data[n].forEach(o => s.put(o)); }
+    t.oncomplete = res; t.onerror = () => rej(t.error);
+  });
+  purl.forEach(c => URL.revokeObjectURL(c.url)); purl.clear();
+  S.machines = machines; S.exercises = d.exercises; S.logs = d.logs;
+  await closeSheet(); render(); toast('Sauvegarde restaurée');
+}
+
+/* ================= Actions ================= */
+const ACT = {
+  back: () => goBack(cur.back || '/seance'),
+  settings: () => sheetSettings(),
+  close: () => closeSheet(),
+  day: b => rep('#/seance/' + addDays(cur.date, +b.dataset.n)),
+  pickex: () => sheetPickEx(cur.date),
+  pickone: (b, id) => { const date = ctx.date, l = S.logs.find(x => x.date === date && x.exerciseId === id); sheetSet({ date, exId: id, logId: l?.id }); },
+  newexfrompick: () => { const date = ctx.date; sheetExercise(null, { onSaved: ex => sheetSet({ date, exId: ex.id }) }); },
+  addset: (b, id) => { const l = L(id); sheetSet({ date: l.date, exId: l.exerciseId, logId: id }); },
+  editset: (b, id) => { const l = L(id); sheetSet({ date: l.date, exId: l.exerciseId, logId: id, idx: +b.dataset.i }); },
+  sign: () => { const i = $('#s-k'); i.value = fIn(-(pNum(i.value) || 0)); },
+  async saveset() {
+    const c = ctx, reps = Math.round(pNum($('#s-r').value)), kg = pNum($('#s-k').value);
+    if (!(reps > 0)) return toast('Nombre de répétitions invalide');
+    if (kg == null) return toast('Charge invalide');
+    let log = c.logId ? L(c.logId) : S.logs.find(l => l.date === c.date && l.exerciseId === c.exId);
+    if (!log) log = { id: uid(), date: c.date, exerciseId: c.exId, sets: [], note: '', createdAt: Date.now() };
+    const set = { reps, kg: r2(kg) };
+    if (c.idx != null) log.sets[c.idx] = set; else log.sets.push(set);
+    await save('logs', log); await closeSheet(); render();
+  },
+  async delset() {
+    const l = L(ctx.logId); l.sets.splice(ctx.idx, 1);
+    if (l.sets.length) await save('logs', l); else await remove('logs', l.id);
+    await closeSheet(); render();
+  },
+  logmenu: (b, id) => sheetLogMenu(id),
+  lognote: (b, id) => sheetNote(id),
+  async savenote() { const l = L(ctx.id); l.note = $('#n-t').value.trim(); await save('logs', l); await closeSheet(); render(); },
+  loghist: async (b, id) => { await closeSheet(); go('#/exo/' + id); },
+  async logrm(b, id) {
+    if (!confirm('Retirer cet exercice (et ses séries) de cette séance ?')) return;
+    await remove('logs', id); await closeSheet(); render();
+  },
+  dotoday: (b, id) => {
+    const t = today(), l = S.logs.find(x => x.date === t && x.exerciseId === id);
+    afterRender = () => sheetSet({ date: t, exId: id, logId: l?.id });
+    go('#/seance/' + t);
+  },
+  metric: b => { chartMetric = b.dataset.m; render(); },
+  newex: b => sheetExercise(null, { machineId: b.dataset.m || '' }),
+  editex: (b, id) => sheetExercise(id),
+  async saveex() {
+    const name = $('#e-name').value.trim(); if (!name) return toast('Donne un nom à l’exercice');
+    let mid = $('#e-m').value; if (mid === '__new') mid = '';
+    const old = ctx.id ? E(ctx.id) : null;
+    const ex = { ...(old || { id: uid(), createdAt: Date.now() }), name, machineId: mid || null, notes: $('#e-notes').value.trim() };
+    await save('exercises', ex);
+    const cb = ctx.opts?.onSaved;
+    if (cb) cb(ex); else { await closeSheet(); render(); }
+  },
+  async delex() {
+    const ex = E(ctx.id), n = S.logs.filter(l => l.exerciseId === ex.id).length;
+    if (!confirm(`Supprimer « ${ex.name} »${n ? ` et son historique (${n} séance${n > 1 ? 's' : ''})` : ''} ?`)) return;
+    for (const l of S.logs.filter(l => l.exerciseId === ex.id)) await remove('logs', l.id);
+    await remove('exercises', ex.id); await closeSheet();
+    if (cur.v === 'exo') rep('#/exos'); else render();
+  },
+  newmachine: () => sheetMachine(null),
+  editmachine: (b, id) => sheetMachine(id),
+  async savemachine() {
+    const name = $('#m-name').value.trim(); if (!name) return toast('Donne un nom à la machine');
+    const old = ctx.id ? M(ctx.id) : null;
+    const m = { ...(old || { id: uid(), createdAt: Date.now() }), name, notes: $('#m-notes').value.trim(), photo: ctx.photo || null };
+    await save('machines', m);
+    const cb = ctx.onSaved;
+    if (cb) cb(m); else { await closeSheet(); render(); }
+  },
+  async delmachine() {
+    const m = M(ctx.id), exs = S.exercises.filter(e => e.machineId === m.id);
+    if (!confirm(`Supprimer la machine « ${m.name} » ?${exs.length ? `\nSes ${exs.length} exercice(s) et leur historique sont conservés, classés « Sans machine ».` : ''}`)) return;
+    for (const e of exs) { e.machineId = null; await save('exercises', e); }
+    await remove('machines', m.id); await closeSheet();
+    if (cur.v === 'machine') rep('#/machines'); else render();
+  },
+  export: () => exportData(),
+};
+document.addEventListener('click', async e => {
+  const st = e.target.closest('[data-st]');
+  if (st) {
+    const inp = $(st.dataset.st === 'r' ? '#s-r' : '#s-k'), d = +st.dataset.d;
+    let v = (pNum(inp.value) || 0) + d;
+    if (st.dataset.st === 'r') v = Math.max(1, Math.round(v));
+    inp.value = fIn(v); return;
+  }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const fn = ACT[b.dataset.act]; if (!fn) return;
+  e.preventDefault();
+  try { await fn(b, b.dataset.id); } catch (err) { console.error(err); toast('Erreur : ' + (err.message || err)); }
+});
+
+/* ================= Démarrage ================= */
+(async () => {
+  try {
+    db = await openDB();
+    [S.machines, S.exercises, S.logs] = await Promise.all(STORES.map(n => getAll(n)));
+  } catch (e) {
+    $('#view').innerHTML = `<div class="empty">Impossible d’ouvrir la base de données locale.<br>${esc(e.message || e)}</div>`; return;
+  }
+  stack.push(location.hash || '#/seance');
+  window.addEventListener('hashchange', onHash);
+  render();
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
