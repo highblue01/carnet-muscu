@@ -90,6 +90,10 @@ nav#tabs a.on{color:var(--ac)}
 .stepper button:active{background:var(--s3)}
 .stepper input{text-align:center;font-size:24px;font-weight:700;height:54px;padding:6px;min-width:0;font-variant-numeric:tabular-nums}
 .hint{font-size:13px;color:var(--mu)}
+label.chk{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px;background:var(--s2);border-radius:10px}
+label.chk input{width:22px;height:22px;padding:0;flex:none;accent-color:var(--ac)}
+.stepper.fine{margin-top:6px}
+.stepper.fine button{flex:1;height:44px;font-size:15px;color:var(--ac2)}
 .toast{position:fixed;left:50%;bottom:calc(88px + var(--sb));transform:translateX(-50%);background:var(--s3);padding:10px 16px;border-radius:999px;z-index:30;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);white-space:nowrap}
 .badge{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--acbg);color:var(--ac2);vertical-align:middle}
 a.lnk{color:var(--ac2);text-decoration:none}
@@ -103,6 +107,7 @@ a.lnk{color:var(--ac2);text-decoration:none}
 
 <script>
 'use strict';
+const APP_VERSION = '1.1', APP_DATE = '20/11/2026';
 /* ================= Icônes & utilitaires ================= */
 const $ = (s, r = document) => r.querySelector(s);
 const sv = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -351,6 +356,7 @@ function vMachine(id) {
   header(m.name, { back: '/machines', right: `<button class="ib" data-act="editmachine" data-id="${id}" aria-label="Modifier">${I.edit}</button>` });
   const u = photoUrl(m), exs = S.exercises.filter(e => e.machineId === id).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
   let h = u ? `<img class="hero" src="${u}" alt="">` : `<button class="photo-pick" data-act="editmachine" data-id="${id}" style="margin:0 0 12px">${I.camera}</button>`;
+  if (m.fine) h += `<div style="margin-bottom:12px"><span class="badge">Réglage au 100 g</span></div>`;
   if (m.notes) h += `<div class="card"><div class="mu sm">Réglages / notes</div><div style="white-space:pre-wrap;margin-top:4px">${esc(m.notes)}</div></div>`;
   h += `<div class="grp">Exercices sur cette machine</div>`;
   h += exs.length ? `<div class="card list" style="padding:4px 12px">${exs.map(e => exRow(e)).join('')}</div>` : `<div class="empty">Aucun exercice associé.</div>`;
@@ -406,12 +412,13 @@ function sheetSet({ date, exId, logId = null, idx = null }) {
   else if (log && log.sets.length) init = log.sets[log.sets.length - 1];
   else { const p = prevLog(exId, date) || logsOf(exId)[0]; init = p ? p.sets[0] : { reps: 10, kg: 0 }; }
   const n = idx != null ? idx + 1 : (log ? log.sets.length : 0) + 1;
-  const pv = prevLog(exId, date);
+  const pv = prevLog(exId, date), fine = !!M(ex.machineId)?.fine;
   openSheet(`<h2>${esc(ex.name)}</h2><div class="mu sm">Série ${n}${pv ? ` · précédent : ${esc(setsTxt(pv.sets))}` : ''}</div>
     <label class="f">Répétitions</label>
     <div class="stepper"><button data-st="r" data-d="-1">−1</button><input id="s-r" inputmode="numeric" value="${init.reps}"><button data-st="r" data-d="1">+1</button></div>
-    <label class="f">Charge (kg)</label>
+    <label class="f">Charge (kg)${fine ? ' · précision 100 g' : ''}</label>
     <div class="stepper"><button data-st="k" data-d="-5">−5</button><button data-st="k" data-d="-1">−1</button><input id="s-k" inputmode="decimal" value="${fIn(init.kg)}"><button data-st="k" data-d="1">+1</button><button data-st="k" data-d="5">+5</button></div>
+    ${fine ? `<div class="stepper fine"><button data-st="k" data-d="-0.1">−0,1</button><button data-st="k" data-d="0.1">+0,1</button></div>` : ''}
     <div class="row" style="margin-top:10px"><button class="btn" data-act="sign" style="min-height:40px;padding:8px 14px">± Signe</button>
       <div class="hint grow">Négatif = assistance (ex. tractions assistées à −20 kg)</div></div>
     <div class="acts">${idx != null ? `<button class="btn bad" data-act="delset">Supprimer</button>` : ''}<button class="btn" data-act="close">Annuler</button><button class="btn pri" data-act="saveset">Valider</button></div>`,
@@ -461,6 +468,7 @@ function sheetMachine(id, opts = {}) {
       <input type="file" accept="image/*" id="m-file" hidden></label>
     <label class="f">Nom</label><input id="m-name" value="${esc(m?.name || '')}" placeholder="ex. Poulie haute, Chest press…" autocomplete="off">
     <label class="f">Réglages / notes</label><textarea id="m-notes" placeholder="ex. siège cran 4, dossier position 2">${esc(m?.notes || '')}</textarea>
+    <label class="chk"><input type="checkbox" id="m-fine" ${m?.fine ? 'checked' : ''}><span><b>Précision 100 g</b><br><span class="hint">Ajoute les boutons −0,1 / +0,1 kg pour les exercices de cette machine</span></span></label>
     <div class="acts">${m ? '<button class="btn bad" data-act="delmachine">Supprimer</button>' : ''}<button class="btn" data-act="close">Annuler</button><button class="btn pri" data-act="savemachine">Enregistrer</button></div>`,
     { id, photo: ph, onSaved: opts.onSaved });
   $('#m-file').onchange = async e => {
@@ -481,6 +489,7 @@ async function sheetSettings() {
       <button class="btn blk" data-act="export">Exporter une sauvegarde</button>
       <label class="btn blk" style="margin-top:8px">Restaurer une sauvegarde<input type="file" id="imp" accept="application/json,.json" hidden></label></div>
     <div class="sm mu">Stockage protégé contre l’effacement auto : ${pers ? 'oui ✓' : 'non (installe l’appli sur l’écran d’accueil)'}</div>
+    <div class="sm mu" style="margin-top:10px">Carnet muscu · version ${APP_VERSION} (${APP_DATE})</div>
     <div class="acts"><button class="btn" data-act="close">Fermer</button></div>`);
   $('#imp').onchange = e => importFile(e.target.files[0]);
 }
@@ -580,7 +589,7 @@ const ACT = {
   async savemachine() {
     const name = $('#m-name').value.trim(); if (!name) return toast('Donne un nom à la machine');
     const old = ctx.id ? M(ctx.id) : null;
-    const m = { ...(old || { id: uid(), createdAt: Date.now() }), name, notes: $('#m-notes').value.trim(), photo: ctx.photo || null };
+    const m = { ...(old || { id: uid(), createdAt: Date.now() }), name, notes: $('#m-notes').value.trim(), photo: ctx.photo || null, fine: $('#m-fine').checked };
     await save('machines', m);
     const cb = ctx.onSaved;
     if (cb) cb(m); else { await closeSheet(); render(); }

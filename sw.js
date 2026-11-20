@@ -1,6 +1,6 @@
 // Service worker : permet à l'appli de fonctionner hors ligne (salle sans réseau).
 // Pour publier une mise à jour, change le numéro de version ci-dessous.
-const CACHE = 'carnet-muscu-v1';
+const CACHE = 'carnet-muscu-v2';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
