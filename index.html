@@ -93,6 +93,14 @@ nav#tabs a.on{color:var(--ac)}
 label.chk{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px;background:var(--s2);border-radius:10px}
 label.chk input{width:22px;height:22px;padding:0;flex:none;accent-color:var(--ac)}
 .stepper.fine{margin-top:6px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal .h{text-align:center;font-size:12px;color:var(--mu);padding:2px 0 4px}
+.cd{aspect-ratio:1/1;border-radius:10px;background:var(--s2);color:var(--tx);text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;font-size:15px;line-height:1.1}
+.cd .c{font-size:10px;font-weight:600;opacity:.85}
+.cd.on{background:var(--ac);color:#1a0d03;font-weight:700}
+.cd.td{box-shadow:inset 0 0 0 2px var(--ac2)}
+.list .it > svg{width:18px;height:18px;color:var(--mu);flex:none}
+.seg.mode{margin:0 0 12px}
 .stepper.fine button{flex:1;height:44px;font-size:15px;color:var(--ac2)}
 .toast{position:fixed;left:50%;bottom:calc(88px + var(--sb));transform:translateX(-50%);background:var(--s3);padding:10px 16px;border-radius:999px;z-index:30;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);white-space:nowrap}
 .badge{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--acbg);color:var(--ac2);vertical-align:middle}
@@ -107,7 +115,7 @@ a.lnk{color:var(--ac2);text-decoration:none}
 
 <script>
 'use strict';
-const APP_VERSION = '1.1', APP_DATE = '20/11/2026';
+const APP_VERSION = '1.2', APP_DATE = '25/11/2026';
 /* ================= Icônes & utilitaires ================= */
 const $ = (s, r = document) => r.querySelector(s);
 const sv = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -172,9 +180,19 @@ const byDateDesc = (a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
 const logsOf = exId => S.logs.filter(l => l.exerciseId === exId && l.sets.length).sort(byDateDesc);
 const logsOn = date => S.logs.filter(l => l.date === date).sort((a, b) => a.createdAt - b.createdAt);
 const prevLog = (exId, date) => logsOf(exId).find(l => l.date < date);
-const setsTxt = sets => sets.map(s => `${s.reps}×${fNum(s.kg)}`).join(' · ') + ' kg';
-const maxKg = sets => Math.max(...sets.map(s => s.kg));
-const totReps = sets => sets.reduce((a, s) => a + s.reps, 0);
+// Type de mesure d'un exercice : 'kg' (reps × charge), 'reps' (sans poids), 'time' (sans poids, durée)
+const kindOf = ex => !ex?.noWeight ? 'kg' : (ex.unit === 'time' ? 'time' : 'reps');
+const fDur = s => { s = Math.round(s || 0); const m = Math.floor(s / 60), r = s % 60; return m ? `${m} min${r ? ' ' + pad(r) : ''}` : `${r} s`; };
+function setTxt(s, ex) { if (s.sec != null) return fDur(s.sec); if (ex?.noWeight) return `${s.reps ?? 0} reps`; return `${s.reps ?? 0}×${fNum(s.kg ?? 0)} kg`; }
+function chipInner(s, ex) { if (s.sec != null) return `<b>${fDur(s.sec)}</b>`; if (ex?.noWeight) return `<b>${s.reps ?? 0}</b> reps`; return `<b>${s.reps ?? 0}</b>×<b>${fKg(s.kg ?? 0)}</b>`; }
+const setsTxt = (sets, ex) => kindOf(ex) === 'kg' && sets.every(s => s.sec == null)
+  ? sets.map(s => `${s.reps ?? 0}×${fNum(s.kg ?? 0)}`).join(' · ') + ' kg'
+  : sets.map(s => setTxt(s, ex)).join(' · ');
+const val = (s, k) => k === 'kg' ? (s.kg ?? 0) : k === 'time' ? (s.sec ?? 0) : (s.reps ?? 0);
+const best = (sets, k) => Math.max(...sets.map(s => val(s, k)));
+const total = (sets, k) => sets.reduce((a, s) => a + (k === 'time' ? (s.sec ?? 0) : (s.reps ?? 0)), 0);
+const fVal = (v, k) => k === 'kg' ? fKg(v) : k === 'time' ? fDur(v) : `${v} reps`;
+const addMonths = (ym, n) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; };
 
 /* ================= Photos ================= */
 const purl = new Map();
@@ -220,10 +238,11 @@ $('#tabs').innerHTML = [['seance', I.cal, 'Séance'], ['exos', I.list, 'Exercice
 
 function render() {
   const [v, a] = (location.hash.replace(/^#\/?/, '') || 'seance').split('/');
-  const tab = { exo: 'exos', machine: 'machines' }[v] || v;
+  const tab = { exo: 'exos', machine: 'machines', mois: 'seance' }[v] || v;
   document.querySelectorAll('#tabs a').forEach(x => x.classList.toggle('on', x.dataset.t === tab));
   switch (v) {
     case 'seance': vSeance(/^\d{4}-\d{2}-\d{2}$/.test(a || '') ? a : today()); break;
+    case 'mois': vMois(/^\d{4}-\d{2}$/.test(a || '') ? a : today().slice(0, 7)); break;
     case 'exos': vExos(); break;
     case 'exo': vExo(a); break;
     case 'machines': vMachines(); break;
@@ -234,11 +253,12 @@ function render() {
 }
 
 /* ================= Vue : Séance du jour ================= */
+const modeSeg = m => `<div class="seg mode"><button data-act="tojour" class="${m === 'jour' ? 'on' : ''}">Jour</button><button data-act="tomois" class="${m === 'mois' ? 'on' : ''}">Mois</button></div>`;
 function vSeance(date) {
   cur = { v: 'seance', date };
   header('Séance', { right: gearBtn });
   const isToday = date === today();
-  let h = `<div class="datebar">
+  let h = modeSeg('jour') + `<div class="datebar">
     <button class="ib" data-act="day" data-n="-1" aria-label="Jour précédent">${I.back}</button>
     <div class="d"><span>${esc(fDate(date))}</span>${isToday ? ' <span class="badge">aujourd’hui</span>' : ''}<input type="date" id="dpick" value="${date}"></div>
     <button class="ib" data-act="day" data-n="1" aria-label="Jour suivant">${I.next}</button></div>`;
@@ -254,15 +274,42 @@ function vSeance(date) {
           <div class="grow"><div class="ttl">${esc(ex.name)}</div><div class="mu sm ttl">${esc(m ? m.name : 'Sans machine')}</div></div></a>
         <button class="ib" data-act="logmenu" data-id="${l.id}" aria-label="Options">${I.dots}</button>
       </div>
-      <div class="chips">${l.sets.map((s, i) => `<button class="chip" data-act="editset" data-id="${l.id}" data-i="${i}"><span class="n">${i + 1}</span><b>${s.reps}</b>×<b>${fKg(s.kg)}</b></button>`).join('')}
+      <div class="chips">${l.sets.map((s, i) => `<button class="chip" data-act="editset" data-id="${l.id}" data-i="${i}"><span class="n">${i + 1}</span>${chipInner(s, ex)}</button>`).join('')}
         <button class="chip add" data-act="addset" data-id="${l.id}">+ Série</button></div>
       ${l.note ? `<div class="prev" style="white-space:pre-wrap">Note : ${esc(l.note)}</div>` : ''}
-      ${pv ? `<div class="prev">Précédent (${esc(fShort(pv.date))}) : ${esc(setsTxt(pv.sets))}</div>` : ''}
+      ${pv ? `<div class="prev">Précédent (${esc(fShort(pv.date))}) : ${esc(setsTxt(pv.sets, ex))}</div>` : ''}
     </div>`;
   }
   h += `<button class="btn pri blk" data-act="pickex">${I.plus} Ajouter un exercice</button>`;
   $('#view').innerHTML = h;
   $('#dpick').onchange = e => { if (e.target.value) rep('#/seance/' + e.target.value); };
+}
+
+/* ================= Vue : Séance (mois) ================= */
+const trainDays = ym => { const m = new Map(); for (const l of S.logs) if (l.sets.length && l.date.startsWith(ym + '-')) { if (!m.has(l.date)) m.set(l.date, []); m.get(l.date).push(l); } return m; };
+function vMois(ym) {
+  cur = { v: 'mois', ym };
+  header('Séance', { right: gearBtn });
+  const [y, m] = ym.split('-').map(Number);
+  const nDays = new Date(y, m, 0).getDate(), off = (new Date(y, m - 1, 1).getDay() + 6) % 7;
+  const days = trainDays(ym), nPrev = trainDays(addMonths(ym, -1)).size, td = today();
+  const title = cap1(new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
+  let h = modeSeg('mois') + `<div class="datebar">
+    <button class="ib" data-act="month" data-n="-1" aria-label="Mois précédent">${I.back}</button>
+    <div class="d">${esc(title)}</div>
+    <button class="ib" data-act="month" data-n="1" aria-label="Mois suivant">${I.next}</button></div>`;
+  h += `<div class="card"><div class="cal">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => `<div class="h">${d}</div>`).join('')}`;
+  for (let i = 0; i < off; i++) h += `<div></div>`;
+  for (let d = 1; d <= nDays; d++) {
+    const ds = `${ym}-${pad(d)}`, ls = days.get(ds);
+    h += `<a class="cd${ls ? ' on' : ''}${ds === td ? ' td' : ''}" href="#/seance/${ds}"><span>${d}</span>${ls ? `<span class="c">${ls.length} ex.</span>` : ''}</a>`;
+  }
+  h += `</div><div class="sm mu" style="margin-top:12px;text-align:center">${plural(days.size, 'séance')} ce mois-ci · mois précédent : ${nPrev}</div></div>`;
+  const ds = [...days.keys()].sort().reverse();
+  h += ds.length ? `<div class="card list" style="padding:4px 12px">` + ds.map(d => `<a class="it" href="#/seance/${d}"><div class="grow"><div class="ttl">${esc(fDate(d))}</div>
+      <div class="mu sm ttl">${esc(days.get(d).sort((a, b) => a.createdAt - b.createdAt).map(l => E(l.exerciseId)?.name || '?').join(', '))}</div></div>${I.next}</a>`).join('') + `</div>`
+    : `<div class="empty">Aucune séance ce mois-ci.</div>`;
+  $('#view').innerHTML = h;
 }
 
 /* ================= Vue : Liste des exercices ================= */
@@ -285,51 +332,53 @@ function vExos() {
   $('#ex-q').oninput = e => { exQ = e.target.value; draw(); };
 }
 function exRow(e, last = logsOf(e.id)[0]) {
-  const m = M(e.machineId);
+  const m = M(e.machineId), k = kindOf(e);
+  const tag = k === 'time' ? ' · durée' : k === 'reps' ? ' · sans poids' : '';
   return `<a class="it" href="#/exo/${e.id}">${thumb(m)}<div class="grow"><div class="ttl">${esc(e.name)}</div>
-    <div class="mu sm ttl">${esc(m ? m.name : 'Sans machine')}${last ? ' · ' + esc(fShort(last.date)) + ' · max ' + esc(fKg(maxKg(last.sets))) : ''}</div></div></a>`;
+    <div class="mu sm ttl">${esc((m ? m.name : 'Sans machine') + tag)}${last ? ' · ' + esc(fShort(last.date)) + ' · max ' + esc(fVal(best(last.sets, k), k)) : ''}</div></div></a>`;
 }
 
 /* ================= Vue : Détail d'un exercice ================= */
-let chartMetric = 'kg';
+let chartMetric = 'a';
+const METRICS = { kg: ['Charge max', 'Répétitions totales', 'charge max'], reps: ['Reps max', 'Reps totales', 'reps max'], time: ['Durée max', 'Durée totale', 'durée max'] };
 function vExo(id) {
   const ex = E(id); if (!ex) { rep('#/exos'); return; }
   cur = { v: 'exo', id };
-  const m = M(ex.machineId), logs = logsOf(id);
+  const m = M(ex.machineId), logs = logsOf(id), k = kindOf(ex), lab = METRICS[k];
   header(ex.name, { back: '/exos', right: `<button class="ib" data-act="editex" data-id="${id}" aria-label="Modifier">${I.edit}</button>` });
   let h = `<div class="card row">${thumb(m)}<div class="grow">${m ? `<a class="lnk" href="#/machine/${m.id}">${esc(m.name)}</a>` : '<span class="mu">Sans machine</span>'}
+    ${k !== 'kg' ? `<div style="margin-top:4px"><span class="badge">${k === 'time' ? 'Sans poids · durée' : 'Sans poids · répétitions'}</span></div>` : ''}
     ${ex.notes ? `<div class="sm mu" style="white-space:pre-wrap;margin-top:4px">${esc(ex.notes)}</div>` : ''}</div></div>`;
-  h += `<button class="btn pri blk" data-act="dotoday" data-id="${id}" style="margin-bottom:12px">${I.plus} Ajouter une série aujourd’hui</button>`;
   if (logs.length) {
-    const best = Math.max(...logs.map(l => maxKg(l.sets)));
+    const b = Math.max(...logs.map(l => best(l.sets, k)));
     h += `<div class="card"><div class="stats">
         <div><b>${logs.length}</b><span class="mu sm">séance${logs.length > 1 ? 's' : ''}</span></div>
-        <div><b>${esc(fKg(best))}</b><span class="mu sm">charge max</span></div>
+        <div><b>${esc(fVal(b, k))}</b><span class="mu sm">${lab[2]}</span></div>
         <div><b>${esc(fShort(logs[0].date))}</b><span class="mu sm">dernière fois</span></div></div>
-      <div class="seg"><button data-act="metric" data-m="kg" class="${chartMetric === 'kg' ? 'on' : ''}">Charge max</button><button data-act="metric" data-m="reps" class="${chartMetric === 'reps' ? 'on' : ''}">Répétitions totales</button></div>
-      ${chartSvg(logs, chartMetric)}</div>
+      <div class="seg"><button data-act="metric" data-m="a" class="${chartMetric === 'a' ? 'on' : ''}">${lab[0]}</button><button data-act="metric" data-m="b" class="${chartMetric === 'b' ? 'on' : ''}">${lab[1]}</button></div>
+      ${chartSvg(logs, chartMetric, k)}</div>
       <div class="grp">Historique</div>`;
-    h += logs.map(l => `<div class="card"><div class="row"><a class="lnk grow" href="#/seance/${l.date}" >${esc(fDate(l.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }))}</a>
+    h += logs.map(l => `<div class="card"><div class="row"><a class="lnk grow" href="#/seance/${l.date}">${esc(fDate(l.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }))}</a>
         <span class="mu sm">${plural(l.sets.length, 'série')}</span></div>
-        <div class="chips">${l.sets.map(s => `<span class="chip"><b>${s.reps}</b>×<b>${fKg(s.kg)}</b></span>`).join('')}</div>
+        <div class="chips">${l.sets.map(s => `<span class="chip">${chipInner(s, ex)}</span>`).join('')}</div>
         ${l.note ? `<div class="prev" style="white-space:pre-wrap">Note : ${esc(l.note)}</div>` : ''}</div>`).join('');
-  } else h += `<div class="empty">Pas encore de série enregistrée pour cet exercice.</div>`;
+  } else h += `<div class="empty">Pas encore de série enregistrée.<br>Les séries se saisissent depuis l’onglet Séance.</div>`;
   $('#view').innerHTML = h;
 }
-function chartSvg(logs, metric) {
-  const pts = logs.slice(0, 40).reverse().map(l => ({ d: l.date, v: metric === 'kg' ? maxKg(l.sets) : totReps(l.sets) }));
+function chartSvg(logs, metric, k) {
+  const pts = logs.slice(0, 40).reverse().map(l => ({ d: l.date, v: metric === 'a' ? best(l.sets, k) : total(l.sets, k) }));
   if (pts.length < 2) return `<div class="mu sm" style="margin-top:12px">La courbe apparaîtra à partir de 2 séances.</div>`;
-  const W = 340, H = 170, pl = 44, pr = 12, pt = 14, pb = 26;
+  const W = 340, H = 170, pl = k === 'time' ? 60 : 44, pr = 12, pt = 14, pb = 26;
   const vmin = Math.min(...pts.map(p => p.v)), vmax = Math.max(...pts.map(p => p.v));
   let mn = vmin, mx = vmax; if (mn === mx) { mn -= 1; mx += 1; }
   const pv = (mx - mn) * 0.15; mn -= pv; mx += pv;
   const x = i => pl + (W - pl - pr) * i / (pts.length - 1), y = v => pt + (H - pt - pb) * (1 - (v - mn) / (mx - mn));
-  const lab = v => metric === 'kg' ? fNum(v) : String(v);
+  const lab = v => k === 'time' ? fDur(v) : (k === 'kg' && metric === 'a') ? fNum(v) : String(v);
   const hl = v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="#2e3540"/><text x="${pl - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" fill="#98a2ad" font-size="11">${lab(v)}</text>`;
   const poly = pts.map((p, i) => `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Évolution">
     ${hl(vmax)}${vmin !== vmax ? hl(vmin) : ''}
-    ${metric === 'kg' && mn < 0 && mx > 0 ? `<line x1="${pl}" x2="${W - pr}" y1="${y(0)}" y2="${y(0)}" stroke="#4a5360" stroke-dasharray="3 4"/>` : ''}
+    ${k === 'kg' && metric === 'a' && mn < 0 && mx > 0 ? `<line x1="${pl}" x2="${W - pr}" y1="${y(0)}" y2="${y(0)}" stroke="#4a5360" stroke-dasharray="3 4"/>` : ''}
     <polyline points="${poly}" fill="none" stroke="#ff8a3d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
     ${pts.map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.5" fill="#ff8a3d"/>`).join('')}
     <text x="${pl}" y="${H - 6}" fill="#98a2ad" font-size="11">${esc(fShort(pts[0].d))}</text>
@@ -359,18 +408,19 @@ function vMachine(id) {
   if (m.fine) h += `<div style="margin-bottom:12px"><span class="badge">Réglage au 100 g</span></div>`;
   if (m.notes) h += `<div class="card"><div class="mu sm">Réglages / notes</div><div style="white-space:pre-wrap;margin-top:4px">${esc(m.notes)}</div></div>`;
   h += `<div class="grp">Exercices sur cette machine</div>`;
-  h += exs.length ? `<div class="card list" style="padding:4px 12px">${exs.map(e => exRow(e)).join('')}</div>` : `<div class="empty">Aucun exercice associé.</div>`;
-  h += `<button class="btn pri blk" data-act="newex" data-m="${id}">${I.plus} Ajouter un exercice sur cette machine</button>`;
+  h += exs.length ? `<div class="card list" style="padding:4px 12px">${exs.map(e => exRow(e)).join('')}</div>` : `<div class="empty">Aucun exercice associé.<br>Les exercices se créent depuis l’onglet Exercices.</div>`;
   $('#view').innerHTML = h;
 }
 
 /* ================= Panneaux (bottom sheets) ================= */
 let sheetOpen = false, ctx = {}, closeResolve = null;
+function stopTimers() { if (ctx.iv) clearInterval(ctx.iv); ctx.iv = null; ctx.wl?.release?.().catch(() => {}); ctx.wl = null; }
 function openSheet(html, c = {}) {
+  stopTimers();
   $('#sheet').innerHTML = '<div class="grab"></div>' + html; ctx = c; $('#sheet').scrollTop = 0;
   if (!sheetOpen) { sheetOpen = true; $('#bd').classList.add('open'); history.pushState({ sheet: 1 }, ''); }
 }
-function hideSheet() { sheetOpen = false; $('#bd').classList.remove('open'); $('#sheet').innerHTML = ''; ctx = {}; }
+function hideSheet() { stopTimers(); sheetOpen = false; $('#bd').classList.remove('open'); $('#sheet').innerHTML = ''; ctx = {}; }
 function closeSheet() {
   return new Promise(res => {
     if (!sheetOpen) return res();
@@ -397,7 +447,7 @@ function sheetPickEx(date) {
       h += `<div class="grp">${esc(m ? m.name : 'Sans machine')}</div><div class="list">` + groups.get(k).sort((a, b) => a.name.localeCompare(b.name, 'fr')).map(e => {
         const last = logsOf(e.id)[0];
         return `<button class="it" data-act="pickone" data-id="${e.id}">${thumb(m)}<div class="grow"><div class="ttl">${esc(e.name)}${done.has(e.id) ? ' <span class="badge">déjà fait</span>' : ''}</div>
-          <div class="mu sm ttl">${last ? esc(fShort(last.date) + ' : ' + setsTxt(last.sets)) : 'Jamais fait'}</div></div></button>`;
+          <div class="mu sm ttl">${last ? esc(fShort(last.date) + ' : ' + setsTxt(last.sets, e)) : 'Jamais fait'}</div></div></button>`;
       }).join('') + `</div>`;
     }
     $('#pk-list').innerHTML = h;
@@ -406,21 +456,27 @@ function sheetPickEx(date) {
 }
 
 function sheetSet({ date, exId, logId = null, idx = null }) {
-  const ex = E(exId), log = logId ? L(logId) : null;
+  const ex = E(exId), log = logId ? L(logId) : null, k = kindOf(ex);
   let init;
   if (log && idx != null) init = log.sets[idx];
   else if (log && log.sets.length) init = log.sets[log.sets.length - 1];
-  else { const p = prevLog(exId, date) || logsOf(exId)[0]; init = p ? p.sets[0] : { reps: 10, kg: 0 }; }
+  else { const p = prevLog(exId, date) || logsOf(exId)[0]; init = p ? p.sets[0] : {}; }
+  init = { reps: init.reps ?? 10, kg: init.kg ?? 0, sec: init.sec ?? 30 };
   const n = idx != null ? idx + 1 : (log ? log.sets.length : 0) + 1;
-  const pv = prevLog(exId, date), fine = !!M(ex.machineId)?.fine;
-  openSheet(`<h2>${esc(ex.name)}</h2><div class="mu sm">Série ${n}${pv ? ` · précédent : ${esc(setsTxt(pv.sets))}` : ''}</div>
-    <label class="f">Répétitions</label>
-    <div class="stepper"><button data-st="r" data-d="-1">−1</button><input id="s-r" inputmode="numeric" value="${init.reps}"><button data-st="r" data-d="1">+1</button></div>
-    <label class="f">Charge (kg)${fine ? ' · précision 100 g' : ''}</label>
+  const pv = prevLog(exId, date), fine = k === 'kg' && !!M(ex.machineId)?.fine;
+  const repsUI = `<label class="f">Répétitions</label>
+    <div class="stepper"><button data-st="r" data-d="-1">−1</button><input id="s-r" inputmode="numeric" value="${init.reps}"><button data-st="r" data-d="1">+1</button></div>`;
+  let body;
+  if (k === 'time') body = `<label class="f">Durée (secondes)</label>
+    <div class="stepper"><button data-st="t" data-d="-10">−10</button><button data-st="t" data-d="-1">−1</button><input id="s-t" inputmode="numeric" value="${init.sec}"><button data-st="t" data-d="1">+1</button><button data-st="t" data-d="10">+10</button></div>`;
+  else if (k === 'reps') body = repsUI;
+  else body = repsUI + `<label class="f">Charge (kg)${fine ? ' · précision 100 g' : ''}</label>
     <div class="stepper"><button data-st="k" data-d="-5">−5</button><button data-st="k" data-d="-1">−1</button><input id="s-k" inputmode="decimal" value="${fIn(init.kg)}"><button data-st="k" data-d="1">+1</button><button data-st="k" data-d="5">+5</button></div>
     ${fine ? `<div class="stepper fine"><button data-st="k" data-d="-0.1">−0,1</button><button data-st="k" data-d="0.1">+0,1</button></div>` : ''}
     <div class="row" style="margin-top:10px"><button class="btn" data-act="sign" style="min-height:40px;padding:8px 14px">± Signe</button>
-      <div class="hint grow">Négatif = assistance (ex. tractions assistées à −20 kg)</div></div>
+      <div class="hint grow">Négatif = assistance (ex. tractions assistées à −20 kg)</div></div>`;
+  openSheet(`<h2>${esc(ex.name)}</h2><div class="mu sm">Série ${n}${pv ? ` · précédent : ${esc(setsTxt(pv.sets, ex))}` : ''}</div>
+    ${body}
     <div class="acts">${idx != null ? `<button class="btn bad" data-act="delset">Supprimer</button>` : ''}<button class="btn" data-act="close">Annuler</button><button class="btn pri" data-act="saveset">Valider</button></div>`,
     { date, exId, logId: log ? log.id : null, idx });
 }
@@ -444,28 +500,38 @@ function sheetExercise(id, opts = {}) {
   const ex = id ? E(id) : null, d = opts.draft || {};
   const name = d.name ?? ex?.name ?? '', notes = d.notes ?? ex?.notes ?? '';
   const mid = d.machineId ?? ex?.machineId ?? opts.machineId ?? '';
+  const nw = d.noWeight ?? !!ex?.noWeight, unit = d.unit ?? ex?.unit ?? 'reps';
   const ms = [...S.machines].sort((a, b) => a.name.localeCompare(b.name, 'fr'));
   openSheet(`<h2>${ex ? 'Modifier l’exercice' : 'Nouvel exercice'}</h2>
-    <label class="f">Nom de l’exercice</label><input id="e-name" value="${esc(name)}" placeholder="ex. Tractions, Tirage horizontal…" autocomplete="off">
+    <label class="f">Nom de l’exercice</label><input id="e-name" value="${esc(name)}" placeholder="ex. Tractions, Suspension barre…" autocomplete="off">
     <label class="f">Machine</label><select id="e-m"><option value="">Sans machine (poids du corps, haltères…)</option>
       ${ms.map(m => `<option value="${m.id}" ${m.id === mid ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ Nouvelle machine…</option></select>
+    <label class="chk"><input type="checkbox" id="e-nw" ${nw ? 'checked' : ''}><span><b>Sans poids</b><br><span class="hint">Poids du corps : pas de charge à saisir</span></span></label>
+    <div id="e-uw" style="${nw ? '' : 'display:none'}"><label class="f">Mesurer en</label>
+      <div class="seg" id="e-unit" style="margin-top:0"><button type="button" data-u="reps" class="${unit !== 'time' ? 'on' : ''}">Répétitions</button><button type="button" data-u="time" class="${unit === 'time' ? 'on' : ''}">Durée</button></div></div>
     <label class="f">Notes</label><textarea id="e-notes" placeholder="ex. prise serrée, amplitude complète">${esc(notes)}</textarea>
     <div class="acts">${ex ? '<button class="btn bad" data-act="delex">Supprimer</button>' : ''}<button class="btn" data-act="close">Annuler</button><button class="btn pri" data-act="saveex">Enregistrer</button></div>`,
     { id, opts });
+  $('#e-nw').onchange = e => { $('#e-uw').style.display = e.target.checked ? '' : 'none'; };
+  document.querySelectorAll('#e-unit button').forEach(b => b.onclick = () => document.querySelectorAll('#e-unit button').forEach(x => x.classList.toggle('on', x === b)));
   $('#e-m').onchange = e => {
     if (e.target.value !== '__new') return;
-    const draft = { name: $('#e-name').value, notes: $('#e-notes').value };
+    const draft = { name: $('#e-name').value, notes: $('#e-notes').value, noWeight: $('#e-nw').checked, unit: $('#e-unit .on').dataset.u };
     sheetMachine(null, { onSaved: m => sheetExercise(id, { ...opts, draft: { ...draft, machineId: m.id } }) });
   };
   if (!ex) setTimeout(() => $('#e-name')?.focus(), 50);
 }
 
+const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/heic,image/heif';
+const photoPlaceholder = `<span style="text-align:center;display:grid;justify-items:center;gap:6px">${I.camera}<span class="sm">Choisir une photo dans la galerie</span></span>`;
 function sheetMachine(id, opts = {}) {
   const m = id ? M(id) : null;
   const ph = m?.photo || null;
   openSheet(`<h2>${m ? 'Modifier la machine' : 'Nouvelle machine'}</h2>
-    <label class="photo-pick" id="mp"><span id="mp-in">${ph ? `<img src="${photoUrl(m)}" alt="">` : `<span style="text-align:center;display:grid;justify-items:center;gap:6px">${I.camera}<span class="sm">Prendre ou choisir une photo</span></span>`}</span>
-      <input type="file" accept="image/*" id="m-file" hidden></label>
+    <label class="photo-pick" for="m-file"><span id="mp-in" style="display:contents">${ph ? `<img src="${photoUrl(m)}" alt="">` : photoPlaceholder}</span></label>
+    <input type="file" accept="${PHOTO_TYPES}" id="m-file" hidden>
+    <div class="row" style="margin-top:8px"><label for="m-file" class="btn grow" id="m-pbtn" style="min-height:42px">${ph ? 'Changer la photo' : 'Choisir une photo'}</label>
+      <button class="btn bad" data-act="rmphoto" id="m-rm" style="min-height:42px;${ph ? '' : 'display:none'}">Retirer</button></div>
     <label class="f">Nom</label><input id="m-name" value="${esc(m?.name || '')}" placeholder="ex. Poulie haute, Chest press…" autocomplete="off">
     <label class="f">Réglages / notes</label><textarea id="m-notes" placeholder="ex. siège cran 4, dossier position 2">${esc(m?.notes || '')}</textarea>
     <label class="chk"><input type="checkbox" id="m-fine" ${m?.fine ? 'checked' : ''}><span><b>Précision 100 g</b><br><span class="hint">Ajoute les boutons −0,1 / +0,1 kg pour les exercices de cette machine</span></span></label>
@@ -473,8 +539,12 @@ function sheetMachine(id, opts = {}) {
     { id, photo: ph, onSaved: opts.onSaved });
   $('#m-file').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
-    try { const b = await compress(f); ctx.photo = b; $('#mp-in').innerHTML = `<img src="${URL.createObjectURL(b)}" alt="">`; }
-    catch { toast('Impossible de lire cette photo'); }
+    try {
+      const b = await compress(f); ctx.photo = b;
+      $('#mp-in').innerHTML = `<img src="${URL.createObjectURL(b)}" alt="">`;
+      $('#m-pbtn').textContent = 'Changer la photo'; $('#m-rm').style.display = '';
+    } catch { toast('Impossible de lire cette photo'); }
+    e.target.value = '';
   };
 }
 
@@ -531,6 +601,14 @@ const ACT = {
   settings: () => sheetSettings(),
   close: () => closeSheet(),
   day: b => rep('#/seance/' + addDays(cur.date, +b.dataset.n)),
+  month: b => rep('#/mois/' + addMonths(cur.ym, +b.dataset.n)),
+  tomois: () => { if (cur.v === 'seance') rep('#/mois/' + cur.date.slice(0, 7)); },
+  tojour: () => {
+    if (cur.v !== 'mois') return;
+    const t = today(), ds = [...trainDays(cur.ym).keys()].sort();
+    rep('#/seance/' + (cur.ym === t.slice(0, 7) ? t : (ds[ds.length - 1] || cur.ym + '-01')));
+  },
+  rmphoto: () => { ctx.photo = null; $('#mp-in').innerHTML = photoPlaceholder; $('#m-pbtn').textContent = 'Choisir une photo'; $('#m-rm').style.display = 'none'; },
   pickex: () => sheetPickEx(cur.date),
   pickone: (b, id) => { const date = ctx.date, l = S.logs.find(x => x.date === date && x.exerciseId === id); sheetSet({ date, exId: id, logId: l?.id }); },
   newexfrompick: () => { const date = ctx.date; sheetExercise(null, { onSaved: ex => sheetSet({ date, exId: ex.id }) }); },
@@ -538,12 +616,24 @@ const ACT = {
   editset: (b, id) => { const l = L(id); sheetSet({ date: l.date, exId: l.exerciseId, logId: id, idx: +b.dataset.i }); },
   sign: () => { const i = $('#s-k'); i.value = fIn(-(pNum(i.value) || 0)); },
   async saveset() {
-    const c = ctx, reps = Math.round(pNum($('#s-r').value)), kg = pNum($('#s-k').value);
-    if (!(reps > 0)) return toast('Nombre de répétitions invalide');
-    if (kg == null) return toast('Charge invalide');
+    const c = ctx, k = kindOf(E(c.exId));
+    let set;
+    if (k === 'time') {
+      const sec = Math.round(pNum($('#s-t').value));
+      if (!(sec > 0)) return toast('Durée invalide');
+      set = { sec };
+    } else {
+      const reps = Math.round(pNum($('#s-r').value));
+      if (!(reps > 0)) return toast('Nombre de répétitions invalide');
+      if (k === 'reps') set = { reps };
+      else {
+        const kg = pNum($('#s-k').value);
+        if (kg == null) return toast('Charge invalide');
+        set = { reps, kg: r2(kg) };
+      }
+    }
     let log = c.logId ? L(c.logId) : S.logs.find(l => l.date === c.date && l.exerciseId === c.exId);
     if (!log) log = { id: uid(), date: c.date, exerciseId: c.exId, sets: [], note: '', createdAt: Date.now() };
-    const set = { reps, kg: r2(kg) };
     if (c.idx != null) log.sets[c.idx] = set; else log.sets.push(set);
     await save('logs', log); await closeSheet(); render();
   },
@@ -560,11 +650,6 @@ const ACT = {
     if (!confirm('Retirer cet exercice (et ses séries) de cette séance ?')) return;
     await remove('logs', id); await closeSheet(); render();
   },
-  dotoday: (b, id) => {
-    const t = today(), l = S.logs.find(x => x.date === t && x.exerciseId === id);
-    afterRender = () => sheetSet({ date: t, exId: id, logId: l?.id });
-    go('#/seance/' + t);
-  },
   metric: b => { chartMetric = b.dataset.m; render(); },
   newex: b => sheetExercise(null, { machineId: b.dataset.m || '' }),
   editex: (b, id) => sheetExercise(id),
@@ -572,7 +657,8 @@ const ACT = {
     const name = $('#e-name').value.trim(); if (!name) return toast('Donne un nom à l’exercice');
     let mid = $('#e-m').value; if (mid === '__new') mid = '';
     const old = ctx.id ? E(ctx.id) : null;
-    const ex = { ...(old || { id: uid(), createdAt: Date.now() }), name, machineId: mid || null, notes: $('#e-notes').value.trim() };
+    const noWeight = $('#e-nw').checked;
+    const ex = { ...(old || { id: uid(), createdAt: Date.now() }), name, machineId: mid || null, notes: $('#e-notes').value.trim(), noWeight, unit: noWeight ? $('#e-unit .on').dataset.u : null };
     await save('exercises', ex);
     const cb = ctx.opts?.onSaved;
     if (cb) cb(ex); else { await closeSheet(); render(); }
@@ -606,9 +692,9 @@ const ACT = {
 document.addEventListener('click', async e => {
   const st = e.target.closest('[data-st]');
   if (st) {
-    const inp = $(st.dataset.st === 'r' ? '#s-r' : '#s-k'), d = +st.dataset.d;
+    const t = st.dataset.st, inp = $({ r: '#s-r', k: '#s-k', t: '#s-t' }[t]), d = +st.dataset.d;
     let v = (pNum(inp.value) || 0) + d;
-    if (st.dataset.st === 'r') v = Math.max(1, Math.round(v));
+    if (t === 'r' || t === 't') v = Math.max(1, Math.round(v));
     inp.value = fIn(v); return;
   }
   const b = e.target.closest('[data-act]'); if (!b) return;
