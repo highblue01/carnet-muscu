@@ -40,6 +40,9 @@ nav#tabs a.on{color:var(--ac)}
 .ttl{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .thumb{width:50px;height:50px;border-radius:10px;object-fit:cover;background:var(--s3);flex:none;display:grid;place-items:center;color:var(--mu)}
 .thumb svg{width:24px;height:24px}
+.thumb.big{width:100px;height:100px;border-radius:14px}
+.thumb.big svg{width:40px;height:40px}
+.ttl2{font-weight:650;font-size:17px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 16px;border-radius:12px;background:var(--s2);font-weight:600;min-height:48px;text-align:center}
 .btn:active{filter:brightness(1.25)}
 .btn svg{width:20px;height:20px}
@@ -101,6 +104,8 @@ label.chk input{width:22px;height:22px;padding:0;flex:none;accent-color:var(--ac
 .cd.td{box-shadow:inset 0 0 0 2px var(--ac2)}
 .list .it > svg{width:18px;height:18px;color:var(--mu);flex:none}
 .seg.mode{margin:0 0 12px}
+.done{text-align:center;padding:14px;margin-bottom:10px;border-radius:var(--r);background:var(--acbg);color:var(--ac2);font-weight:600}
+.done .sm{display:block;font-weight:400;color:var(--mu);margin-top:2px}
 .stepper.fine button{flex:1;height:44px;font-size:15px;color:var(--ac2)}
 .toast{position:fixed;left:50%;bottom:calc(88px + var(--sb));transform:translateX(-50%);background:var(--s3);padding:10px 16px;border-radius:999px;z-index:30;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);white-space:nowrap}
 .badge{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--acbg);color:var(--ac2);vertical-align:middle}
@@ -115,7 +120,7 @@ a.lnk{color:var(--ac2);text-decoration:none}
 
 <script>
 'use strict';
-const APP_VERSION = '1.2', APP_DATE = '25/11/2026';
+const APP_VERSION = '1.4', APP_DATE = '27/11/2026';
 /* ================= Icônes & utilitaires ================= */
 const $ = (s, r = document) => r.querySelector(s);
 const sv = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -203,7 +208,7 @@ function photoUrl(m) {
   if (c) URL.revokeObjectURL(c.url);
   const url = URL.createObjectURL(m.photo); purl.set(m.id, { blob: m.photo, url }); return url;
 }
-const thumb = m => { const u = photoUrl(m); return u ? `<img class="thumb" src="${u}" alt="">` : `<div class="thumb">${I.dumbbell}</div>`; };
+const thumb = (m, big) => { const u = photoUrl(m), c = big ? 'thumb big' : 'thumb'; return u ? `<img class="${c}" src="${u}" alt="">` : `<div class="${c}">${I.dumbbell}</div>`; };
 function loadImg(file) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); }); }
 async function compress(file, max = 1280, q = 0.82) {
   const img = await loadImg(file);
@@ -263,24 +268,33 @@ function vSeance(date) {
     <div class="d"><span>${esc(fDate(date))}</span>${isToday ? ' <span class="badge">aujourd’hui</span>' : ''}<input type="date" id="dpick" value="${date}"></div>
     <button class="ib" data-act="day" data-n="1" aria-label="Jour suivant">${I.next}</button></div>`;
   if (!isToday) h += `<div style="text-align:center;margin:-4px 0 12px"><a class="lnk sm" href="#/seance/${today()}">Revenir à aujourd’hui</a></div>`;
-  const logs = logsOn(date);
+  const logs = logsOn(date), locked = logs.length > 0 && logs.every(l => l.closed);
   if (!logs.length) h += `<div class="empty">Aucun exercice enregistré ce jour-là.</div>`;
   for (const l of logs) {
     const ex = E(l.exerciseId); if (!ex) continue;
     const m = M(ex.machineId), pv = prevLog(ex.id, date);
     h += `<div class="card">
       <div class="row">
-        <a href="#/exo/${ex.id}" class="row grow" style="color:inherit;text-decoration:none">${thumb(m)}
-          <div class="grow"><div class="ttl">${esc(ex.name)}</div><div class="mu sm ttl">${esc(m ? m.name : 'Sans machine')}</div></div></a>
-        <button class="ib" data-act="logmenu" data-id="${l.id}" aria-label="Options">${I.dots}</button>
+        <a href="#/exo/${ex.id}" class="row grow" style="color:inherit;text-decoration:none;gap:14px">${thumb(m, true)}
+          <div class="grow"><div class="ttl2">${esc(ex.name)}</div><div class="mu sm ttl" style="margin-top:2px">${esc(m ? m.name : 'Sans machine')}</div></div></a>
+        ${locked ? '' : `<button class="ib" data-act="logmenu" data-id="${l.id}" aria-label="Options">${I.dots}</button>`}
       </div>
-      <div class="chips">${l.sets.map((s, i) => `<button class="chip" data-act="editset" data-id="${l.id}" data-i="${i}"><span class="n">${i + 1}</span>${chipInner(s, ex)}</button>`).join('')}
-        <button class="chip add" data-act="addset" data-id="${l.id}">+ Série</button></div>
+      <div class="chips">${l.sets.map((s, i) => locked
+          ? `<span class="chip"><span class="n">${i + 1}</span>${chipInner(s, ex)}</span>`
+          : `<button class="chip" data-act="editset" data-id="${l.id}" data-i="${i}"><span class="n">${i + 1}</span>${chipInner(s, ex)}</button>`).join('')}
+        ${locked ? '' : `<button class="chip add" data-act="addset" data-id="${l.id}">+ Série</button>`}</div>
       ${l.note ? `<div class="prev" style="white-space:pre-wrap">Note : ${esc(l.note)}</div>` : ''}
       ${pv ? `<div class="prev">Précédent (${esc(fShort(pv.date))}) : ${esc(setsTxt(pv.sets, ex))}</div>` : ''}
     </div>`;
   }
-  h += `<button class="btn pri blk" data-act="pickex">${I.plus} Ajouter un exercice</button>`;
+  if (locked) {
+    const nSets = logs.reduce((a, l) => a + l.sets.length, 0);
+    h += `<div class="done">✓ Séance terminée<span class="sm">${plural(logs.length, 'exercice')} · ${plural(nSets, 'série')}</span></div>
+      <button class="btn ghost blk" data-act="reopen">${I.edit} Éditer la séance</button>`;
+  } else {
+    h += `<button class="btn pri blk" data-act="pickex">${I.plus} Ajouter un exercice</button>`;
+    if (logs.length) h += `<button class="btn blk" data-act="endday" style="margin-top:10px">✓ Fin de séance</button>`;
+  }
   $('#view').innerHTML = h;
   $('#dpick').onchange = e => { if (e.target.value) rep('#/seance/' + e.target.value); };
 }
@@ -313,23 +327,17 @@ function vMois(ym) {
 }
 
 /* ================= Vue : Liste des exercices ================= */
-let exQ = '';
 function vExos() {
   cur = { v: 'exos' };
   header('Exercices', { right: gearBtn });
-  $('#view').innerHTML = `<input id="ex-q" type="search" placeholder="Rechercher un exercice ou une machine…" style="margin-bottom:12px" value="${esc(exQ)}" autocomplete="off">
-    <div id="ex-list"></div><button class="btn pri blk" data-act="newex" style="margin-top:4px">${I.plus} Nouvel exercice</button>`;
+  $('#view').innerHTML = `<div id="ex-list"></div><button class="btn pri blk" data-act="newex" style="margin-top:4px">${I.plus} Nouvel exercice</button>`;
   const draw = () => {
-    const q = exQ.trim().toLowerCase();
-    const rows = S.exercises.filter(e => !q || e.name.toLowerCase().includes(q) || (M(e.machineId)?.name || '').toLowerCase().includes(q))
-      .map(e => ({ e, last: logsOf(e.id)[0] }))
+    const rows = S.exercises.map(e => ({ e, last: logsOf(e.id)[0] }))
       .sort((a, b) => (b.last?.date || '').localeCompare(a.last?.date || '') || a.e.name.localeCompare(b.e.name, 'fr'));
     $('#ex-list').innerHTML = !S.exercises.length ? `<div class="empty">Aucun exercice pour l’instant.<br>Commence par créer une machine (avec sa photo), puis ses exercices.</div>`
-      : !rows.length ? `<div class="empty">Aucun résultat.</div>`
       : `<div class="card list" style="padding:4px 12px">${rows.map(({ e, last }) => exRow(e, last)).join('')}</div>`;
   };
   draw();
-  $('#ex-q').oninput = e => { exQ = e.target.value; draw(); };
 }
 function exRow(e, last = logsOf(e.id)[0]) {
   const m = M(e.machineId), k = kindOf(e);
@@ -432,16 +440,15 @@ window.addEventListener('popstate', () => { if (sheetOpen) { hideSheet(); const 
 $('#bd').addEventListener('click', e => { if (e.target.id === 'bd') closeSheet(); });
 
 function sheetPickEx(date) {
-  openSheet(`<h2>Ajouter un exercice</h2><input id="pk-q" type="search" placeholder="Rechercher…" autocomplete="off" style="margin-top:8px"><div id="pk-list"></div>
+  openSheet(`<h2>Ajouter un exercice</h2><div id="pk-list"></div>
     <div class="acts"><button class="btn ghost" data-act="newexfrompick">${I.plus} Créer un nouvel exercice</button></div>`, { date });
-  const draw = (q = '') => {
-    q = q.trim().toLowerCase();
-    const exs = S.exercises.filter(e => !q || e.name.toLowerCase().includes(q) || (M(e.machineId)?.name || '').toLowerCase().includes(q));
+  const draw = () => {
+    const exs = S.exercises;
     const done = new Set(logsOn(date).map(l => l.exerciseId));
     const groups = new Map();
     for (const e of exs) { const k = M(e.machineId) ? e.machineId : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); }
     const keys = [...groups.keys()].sort((a, b) => (a === '') - (b === '') || (M(a)?.name || '').localeCompare(M(b)?.name || '', 'fr'));
-    let h = !S.exercises.length ? `<div class="empty">Pas encore d’exercice : crée le premier ci-dessous.</div>` : !exs.length ? `<div class="empty">Aucun résultat.</div>` : '';
+    let h = !exs.length ? `<div class="empty">Pas encore d’exercice : crée le premier ci-dessous.</div>` : '';
     for (const k of keys) {
       const m = M(k);
       h += `<div class="grp">${esc(m ? m.name : 'Sans machine')}</div><div class="list">` + groups.get(k).sort((a, b) => a.name.localeCompare(b.name, 'fr')).map(e => {
@@ -452,7 +459,7 @@ function sheetPickEx(date) {
     }
     $('#pk-list').innerHTML = h;
   };
-  draw(); $('#pk-q').oninput = e => draw(e.target.value);
+  draw();
 }
 
 function sheetSet({ date, exId, logId = null, idx = null }) {
@@ -473,8 +480,7 @@ function sheetSet({ date, exId, logId = null, idx = null }) {
   else body = repsUI + `<label class="f">Charge (kg)${fine ? ' · précision 100 g' : ''}</label>
     <div class="stepper"><button data-st="k" data-d="-5">−5</button><button data-st="k" data-d="-1">−1</button><input id="s-k" inputmode="decimal" value="${fIn(init.kg)}"><button data-st="k" data-d="1">+1</button><button data-st="k" data-d="5">+5</button></div>
     ${fine ? `<div class="stepper fine"><button data-st="k" data-d="-0.1">−0,1</button><button data-st="k" data-d="0.1">+0,1</button></div>` : ''}
-    <div class="row" style="margin-top:10px"><button class="btn" data-act="sign" style="min-height:40px;padding:8px 14px">± Signe</button>
-      <div class="hint grow">Négatif = assistance (ex. tractions assistées à −20 kg)</div></div>`;
+    <div class="row" style="margin-top:10px"><button class="btn" data-act="sign" style="min-height:40px;padding:8px 14px">± Signe</button></div>`;
   openSheet(`<h2>${esc(ex.name)}</h2><div class="mu sm">Série ${n}${pv ? ` · précédent : ${esc(setsTxt(pv.sets, ex))}` : ''}</div>
     ${body}
     <div class="acts">${idx != null ? `<button class="btn bad" data-act="delset">Supprimer</button>` : ''}<button class="btn" data-act="close">Annuler</button><button class="btn pri" data-act="saveset">Valider</button></div>`,
@@ -610,6 +616,8 @@ const ACT = {
   },
   rmphoto: () => { ctx.photo = null; $('#mp-in').innerHTML = photoPlaceholder; $('#m-pbtn').textContent = 'Choisir une photo'; $('#m-rm').style.display = 'none'; },
   pickex: () => sheetPickEx(cur.date),
+  async endday() { for (const l of logsOn(cur.date)) { l.closed = true; await save('logs', l); } render(); },
+  async reopen() { for (const l of logsOn(cur.date)) { l.closed = false; await save('logs', l); } render(); },
   pickone: (b, id) => { const date = ctx.date, l = S.logs.find(x => x.date === date && x.exerciseId === id); sheetSet({ date, exId: id, logId: l?.id }); },
   newexfrompick: () => { const date = ctx.date; sheetExercise(null, { onSaved: ex => sheetSet({ date, exId: ex.id }) }); },
   addset: (b, id) => { const l = L(id); sheetSet({ date: l.date, exId: l.exerciseId, logId: id }); },
